@@ -16,7 +16,7 @@ If this counts as mysterious Eastern magic, it mostly consists of buying somethi
 
 **Local dimming works in daily use. The OSD toggle button has no visible effect.**
 
-Both are true. The control bits change on readback when you press the button, but the black level doesn't follow. Whether a power cycle would help — no idea, didn't test it. I'm happy with local dimming staying on and done chasing the toggle.
+Both are true. The control bits change on readback when you press the button, but the black level doesn't follow. Local dimming survives a full power cycle; the toggle still has no visible effect. I'm happy with local dimming staying on and done chasing the toggle.
 
 The public build disables the toggle and keeps brightness, audio, scenes, status readback, and test patterns.
 

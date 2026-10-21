@@ -78,7 +78,7 @@ The generator only reads and writes local files — no ISP, no GPU DLL, no monit
 
 A later research bridge that also changed OUI at runtime didn't produce a visible toggle either. The public OSD keeps optional E8 reads, removes writes, and disables the toggle buttons and hotkey.
 
-Whether power cycling would help is untested. Experiment stops here.
+Local dimming survives a full power cycle. The toggle still has no visible effect. Experiment stops here.
 
 ## What each check establishes
 
