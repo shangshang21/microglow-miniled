@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-21",
+  "public_release": "3.0.0",
+  "checks": {
+    "windows_x64_build": "PASS",
+    "xaml_load_exit": 0,
+    "disabled_dimming_cli_exit": 2,
+    "synthetic_generator_tests": {
+      "passed": 7,
+      "failed": 0
+    },
+    "owned_backup_reconstruction_equals_reference_v2": true,
+    "actual_changed_bytes": 72,
+    "configuration_bank_preserved": true,
+    "exact_user_photos": 2,
+    "public_source_file_scan": "PASS"
+  },
+  "reference_digests": {
+    "original_sha256": "e82d6cef7836bdb29c6223285626509b4ae4abfd686bd1029b2c3d5d0d976852",
+    "rebuilt_v2_sha256": "e387973e7e407aae3eb51d3671c7434f03bacb7c901a2347c12572c82a2ffaa5"
+  },
+  "photo_sha256": {
+    "after-local-dimming.jpg": "9375e48218424a003409016254b4e12f937ba9a40affcda60ffa25f4412628e6",
+    "before-local-dimming.jpg": "0a9c981891545108f3dca3a10c9464937577ae09571c03b1906705c42d4c2602"
+  },
+  "optical_acceptance": {
+    "source": "maintainer latest physical observations",
+    "overall_local_dimming": "WORKING",
+    "runtime_toggle": "NO_VISIBLE_EFFECT",
+    "power_cycle_toggle_hypothesis": "NOT_TESTED_EXPERIMENT_STOPPED",
+    "photos_controlled_measurement": false
+  },
+  "publication_validation": {
+    "monitor_reflashed": false,
+    "brightness_changed": false,
+    "new_hardware_test_requested": false,
+    "new_public_build_live_gui_or_device_e2e": "NOT_RUN; build and XAML load only"
+  },
+  "exclusions": [
+    "complete vendor firmware",
+    "full modified images",
+    "private Git history",
+    "raw device logs",
+    "vendor DLLs",
+    "runtime E8 bridge firmware"
+  ]
+}

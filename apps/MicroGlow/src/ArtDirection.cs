@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 shangshang21 and contributors
+using System;
+using System.Collections.Generic;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
+using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Shapes;
+using System.Windows.Threading;
+
+namespace MicroGlow {
+ public static class Palette {
+  public static readonly string[] Keys={"Bg","Rail","Surface","Chip","Ink","Muted","Line","Accent","AccentInk","Deep","DeepInk","Screen","Zone","Orb","OrbGlow"};
+  static readonly string[][] Colors={
+   new[]{"#F7F2E8","#F1EADB","#FFFDF8","#EFE6D4","#2B2318","#6E6252","#E3D7C1","#E8A33D","#8A5310","#2B2318","#F7F2E8","#15110B","#FFE2AE","#F2B654","#F2B654"},
+   new[]{"#EEF3F0","#E4ECE8","#FFFFFF","#E4ECE8","#16201C","#4F5F59","#D3DED9","#2F7D62","#22654E","#16201C","#EEF3F0","#0E1311","#FFF6E6","#FFD36B","#FFD36B"},
+   new[]{"#0B0B0D","#0F0F12","#141417","#1C1C21","#ECEAE4","#9A988F","#26262B","#F5B841","#F5B841","#1E1A10","#F3E7C9","#000000","#FFF1D6","#E9E4D6","#E9E4D6"}
+  };
+  public static int Period(){int h=DateTime.Now.Hour;return h>=6&&h<11?0:h>=11&&h<17?1:2;}
+  sealed class LiveColor:DependencyObject {public static readonly DependencyProperty ValueProperty=DependencyProperty.Register("Value",typeof(Color),typeof(LiveColor));public Color Value{get{return(Color)GetValue(ValueProperty);}set{SetValue(ValueProperty,value);}}}
+  static readonly Dictionary<string,LiveColor> sources=new Dictionary<string,LiveColor>();
+  public static void Install(ResourceDictionary resources){for(int i=0;i<Keys.Length;i++){var source=new LiveColor{Value=(Color)ColorConverter.ConvertFromString(Colors[Period()][i])};sources[Keys[i]]=source;var brush=new SolidColorBrush();BindingOperations.SetBinding(brush,SolidColorBrush.ColorProperty,new Binding("Value"){Source=source});resources["Brush."+Keys[i]]=brush;}}
+  public static SolidColorBrush Brush(string key){return(SolidColorBrush)Application.Current.Resources["Brush."+key];}
+  public static void Apply(int period,bool animate){for(int i=0;i<Keys.Length;i++){var b=Brush(Keys[i]);Color color=(Color)ColorConverter.ConvertFromString(Colors[period][i]);Color current=b.Color;sources[Keys[i]].Value=color;if(animate)b.BeginAnimation(SolidColorBrush.ColorProperty,new ColorAnimation(current,color,TimeSpan.FromMilliseconds(900)){EasingFunction=new QuadraticEase{EasingMode=EasingMode.EaseInOut},FillBehavior=FillBehavior.Stop});else b.BeginAnimation(SolidColorBrush.ColorProperty,null);}}
+ }
+ public sealed class RollingDigits:Grid {
+  readonly TranslateTransform[] strips=new TranslateTransform[3];readonly Border[] windows=new Border[3];readonly TextBlock unknown;
+  public RollingDigits(){Height=72;Width=126;Typography.SetNumeralAlignment(this,FontNumeralAlignment.Tabular);for(int i=0;i<3;i++){ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(42)});var viewport=new Border{Height=72,ClipToBounds=true};var canvas=new Canvas{Height=720};strips[i]=new TranslateTransform();canvas.RenderTransform=strips[i];for(int n=0;n<10;n++){var t=new TextBlock{Text=n.ToString(),FontSize=64,FontWeight=FontWeights.Light,FontFamily=new FontFamily("Segoe UI Variable Display, Segoe UI Light"),Height=72,Width=42,TextAlignment=TextAlignment.Center,LineHeight=72,LineStackingStrategy=LineStackingStrategy.BlockLineHeight};t.SetResourceReference(TextBlock.ForegroundProperty,"Brush.Ink");Canvas.SetTop(t,n*72);canvas.Children.Add(t);}viewport.Child=canvas;windows[i]=viewport;SetColumn(viewport,i);Children.Add(viewport);}unknown=new TextBlock{Text="—",FontSize=50,VerticalAlignment=VerticalAlignment.Center};unknown.SetResourceReference(TextBlock.ForegroundProperty,"Brush.Muted");SetColumnSpan(unknown,3);Children.Add(unknown);SetValue(null,false);}
+  public void SetValue(int? value,bool animate){unknown.Visibility=value.HasValue?Visibility.Collapsed:Visibility.Visible;string digits=Math.Max(0,Math.Min(100,value??0)).ToString("000");for(int i=0;i<3;i++){windows[i].Visibility=value.HasValue?Visibility.Visible:Visibility.Hidden;windows[i].Opacity=i<2&&digits.Substring(0,i+1).Trim('0').Length==0?.16:1;double y=-(digits[i]-'0')*72;if(animate){var frames=new DoubleAnimationUsingKeyFrames{Duration=TimeSpan.FromMilliseconds(700+i*60)};frames.KeyFrames.Add(new SplineDoubleKeyFrame(y,KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(700+i*60)),new KeySpline(.2,.9,.2,1)));strips[i].BeginAnimation(TranslateTransform.YProperty,frames);}else{strips[i].BeginAnimation(TranslateTransform.YProperty,null);strips[i].Y=y;}}}
+ }
+ public sealed partial class Controller {
+  readonly List<Rectangle> zones=new List<Rectangle>();DispatcherTimer themeTimer;string themeSelection="auto";int themePeriod=-1;double demoX=15.5,demoY=7.5;bool artReady,snapping;int lastBrightness=-1;
+  bool MotionEnabled {get{return motion&&SystemParameters.ClientAreaAnimation;}}
+  void VisitCards(DependencyObject parent,Action<Border> visit){for(int i=0;i<VisualTreeHelper.GetChildrenCount(parent);i++){var child=VisualTreeHelper.GetChild(parent,i);var card=child as Border;if(card!=null&&card.Style==window.FindResource("Card"))visit(card);else VisitCards(child,visit);}}
+  void AnimateCards(FrameworkElement page){int order=0;VisitCards(page,delegate(Border card){card.BeginAnimation(UIElement.OpacityProperty,null);card.Opacity=1;var translate=new TranslateTransform();card.RenderTransform=translate;if(MotionEnabled){var delay=TimeSpan.FromMilliseconds(order++*70);var fade=new DoubleAnimation(0,1,TimeSpan.FromMilliseconds(700)){BeginTime=delay};card.BeginAnimation(UIElement.OpacityProperty,fade);translate.BeginAnimation(TranslateTransform.YProperty,new DoubleAnimation(12,0,TimeSpan.FromMilliseconds(700)){BeginTime=delay,EasingFunction=new CubicEase{EasingMode=EasingMode.EaseOut}});}});}
+  void SavePreferences(){Store.Json("preferences.json",new ExperiencePreferences{Motion=motion,Theme=themeSelection});}
+  void InitializeArtDirection(){var prefs=ReadFile<ExperiencePreferences>("preferences.json");if(prefs!=null&&!String.IsNullOrEmpty(prefs.Theme))themeSelection=prefs.Theme;
+   string[] choices={"auto","morning","noon","night"};string[] names={"Auto","Morning","Noon","Night"};for(int i=0;i<choices.Length;i++){string choice=choices[i];Get<Button>("Theme"+names[i]).Click+=delegate{themeSelection=choice;SavePreferences();ApplyTimeTheme();};}
+   var grid=Get<UniformGrid>("ZoneGrid");for(int i=0;i<512;i++){var rectangle=new Rectangle{RadiusX=4,RadiusY=4,Margin=new Thickness(1),Opacity=.1};rectangle.SetResourceReference(Shape.FillProperty,"Brush.Zone");zones.Add(rectangle);grid.Children.Add(rectangle);}grid.MouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){Point p=e.GetPosition(grid);demoX=Math.Max(0,Math.Min(31,p.X/grid.ActualWidth*32));demoY=Math.Max(0,Math.Min(15,p.Y/grid.ActualHeight*16));PaintZones(true);};
+   Get<Slider>("BrightnessSlider").ValueChanged+=delegate{if(!artReady)return;UpdateArtBrightness();};
+   Get<Slider>("BrightnessSlider").AddHandler(Thumb.DragCompletedEvent,new DragCompletedEventHandler(delegate{SnapBrightness();}));
+   artReady=true;themeTimer=new DispatcherTimer{Interval=TimeSpan.FromSeconds(60)};themeTimer.Tick+=delegate{ApplyTimeTheme();};themeTimer.Start();ApplyTimeTheme();UpdateArtBrightness();
+  }
+  void ApplyTimeTheme(){int next=themeSelection=="morning"?0:themeSelection=="noon"?1:themeSelection=="night"?2:Palette.Period();bool changed=next!=themePeriod;themePeriod=next;Palette.Apply(next,MotionEnabled&&changed);Get<TextBlock>("ClockText").Text=DateTime.Now.ToString("HH:mm");Get<TextBlock>("BrandText").Text="微光 · "+new[]{"晨","午","夜"}[next];foreach(var pair in new[]{Tuple.Create("ThemeAuto","auto"),Tuple.Create("ThemeMorning","morning"),Tuple.Create("ThemeNoon","noon"),Tuple.Create("ThemeNight","night")})Get<Button>(pair.Item1).Tag=pair.Item2==themeSelection?"selected":null;UpdatePageHeading();
+   var sun=Get<Ellipse>("SunOrb");double x=next==0?32:next==1?84:142;double y=next==0?37:next==1?9:37;
+   if(MotionEnabled&&changed){sun.BeginAnimation(Canvas.LeftProperty,new DoubleAnimation(x,TimeSpan.FromMilliseconds(1400)){EasingFunction=new QuadraticEase{EasingMode=EasingMode.EaseInOut}});sun.BeginAnimation(Canvas.TopProperty,new DoubleAnimation(y,TimeSpan.FromMilliseconds(1400)){EasingFunction=new QuadraticEase{EasingMode=EasingMode.EaseInOut}});}else{sun.BeginAnimation(Canvas.LeftProperty,null);sun.BeginAnimation(Canvas.TopProperty,null);Canvas.SetLeft(sun,x);Canvas.SetTop(sun,y);}UpdateMotion();
+  }
+  void UpdatePageHeading(){if(currentPage=="home"){Get<TextBlock>("PageTitle").Text=new[]{"早上好，先开一点点光","正午，光可以给足","夜里，黑要黑一点"}[Math.Max(0,themePeriod)];Get<TextBlock>("PageSubtitle").Text=new[]{"晨光是暖的，屏幕也跟着暖一点。","外面亮，屏幕就亮；颜色清清爽爽。","暗下来的房间，正是分区背光的主场。"}[Math.Max(0,themePeriod)];}}
+  void UpdateMotion(){if(!artReady)return;toast.Motion=MotionEnabled;var sun=Get<Ellipse>("SunOrb");var scale=new ScaleTransform(1,1);sun.RenderTransform=scale;if(MotionEnabled){var pulse=new DoubleAnimation(1,1.06,TimeSpan.FromSeconds(2.4)){AutoReverse=true,RepeatBehavior=RepeatBehavior.Forever};scale.BeginAnimation(ScaleTransform.ScaleXProperty,pulse);scale.BeginAnimation(ScaleTransform.ScaleYProperty,pulse);}else{foreach(var page in pages.Values){page.BeginAnimation(UIElement.OpacityProperty,null);page.Opacity=1;page.RenderTransform=Transform.Identity;VisitCards(page,delegate(Border card){card.BeginAnimation(UIElement.OpacityProperty,null);card.Opacity=1;card.RenderTransform=Transform.Identity;});}sun.BeginAnimation(Canvas.LeftProperty,null);sun.BeginAnimation(Canvas.TopProperty,null);Canvas.SetLeft(sun,themePeriod==0?32:themePeriod==1?84:142);Canvas.SetTop(sun,themePeriod==1?9:37);Get<RollingDigits>("VolumeDigits").SetValue(audio.Available?(int?)audio.Volume:null,false);foreach(var b in zones)b.BeginAnimation(UIElement.OpacityProperty,null);Palette.Apply(Math.Max(0,themePeriod),false);}UpdateArtBrightness();PaintZones(false);}
+  void UpdateArtBrightness(){if(!artReady)return;var slider=Get<Slider>("BrightnessSlider");int value=(int)Math.Round(slider.Value);bool actual=supported.ContainsKey(0x10)&&supported[0x10];Get<RollingDigits>("BrightnessDigits").SetValue(actual?(int?)value:null,MotionEnabled&&lastBrightness>=0&&lastBrightness!=value);lastBrightness=value;var halo=Get<Ellipse>("SunOrb").Effect as System.Windows.Media.Effects.DropShadowEffect;if(halo.IsFrozen){halo=halo.Clone();Get<Ellipse>("SunOrb").Effect=halo;}halo.Color=Palette.Brush("OrbGlow").Color;halo.BlurRadius=6+value*.45;halo.Opacity=themePeriod==2?.35:themePeriod==1?.7:.55;PaintZones(MotionEnabled);}
+  void PaintZones(bool animate){if(!artReady)return;double b=.32+.68*Get<Slider>("BrightnessSlider").Value/100;var story=new Storyboard();for(int i=0;i<zones.Count;i++){double x=i%32,y=i/32,d=Math.Sqrt(Math.Pow(x-demoX,2)+Math.Pow(y-demoY,2));double level=Math.Max(.02,Math.Min(1,1.1-d/4.6))*b;if(Math.Abs(x-demoX)<1&&Math.Abs(y-demoY)<1)level=1;
+    if(animate&&MotionEnabled){var frame=new DoubleAnimationUsingKeyFrames{BeginTime=TimeSpan.FromMilliseconds(d*22),Duration=TimeSpan.FromMilliseconds(550)};frame.KeyFrames.Add(new SplineDoubleKeyFrame(level,KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(550)),new KeySpline(.2,.8,.2,1)));Storyboard.SetTarget(frame,zones[i]);Storyboard.SetTargetProperty(frame,new PropertyPath(UIElement.OpacityProperty));story.Children.Add(frame);}else{zones[i].BeginAnimation(UIElement.OpacityProperty,null);zones[i].Opacity=level;}}
+   if(animate&&MotionEnabled)story.Begin(window,HandoffBehavior.SnapshotAndReplace,false);
+  }
+  void SnapBrightness(){if(snapping||updating||!supported[0x10])return;double value=Get<Slider>("BrightnessSlider").Value;int[] presets={8,35,70};for(int i=0;i<presets.Length;i++)if(Math.Abs(value-presets[i])<=2){snapping=true;Get<Slider>("BrightnessSlider").Value=presets[i];snapping=false;Status("已吸附到 "+new[]{"夜间 8%","日常 35%","明亮 70%"}[i],false);if(MotionEnabled){var tick=Get<Rectangle>(new[]{"TickNight","TickDay","TickBright"}[i]);var scale=new ScaleTransform(1,1);tick.RenderTransformOrigin=new Point(.5,.5);tick.RenderTransform=scale;scale.BeginAnimation(ScaleTransform.ScaleYProperty,new DoubleAnimation(1.35,1,TimeSpan.FromMilliseconds(350)){EasingFunction=new BackEase{Amplitude=.5,EasingMode=EasingMode.EaseOut}});}break;}}
+ }
+}

@@ -1,0 +1,15 @@
+build/
+dist/
+__pycache__/
+*.pyc
+*.bin
+*.rom
+*.hex
+*.exe
+*.dll
+*.pdb
+*.log
+*.jsonl
+*.patch-report.json
+.env
+.env.*

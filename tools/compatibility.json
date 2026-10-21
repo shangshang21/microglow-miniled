@@ -1,0 +1,18 @@
+{
+  "name": "JC2795L_R40.1 / NE160QDM-NM4 case",
+  "image_bytes": 1048576,
+  "excluded_configuration_range": [
+    786432,
+    851968
+  ],
+  "original_code_sha256": "8ddc37caa1bfba1d43fb2db54258c32b9ae0edcaf49b417d2d317b10cb8d3da7",
+  "patched_code_sha256": "4c2d0a3628e3cdb5da56e57b1c3a6026423e7d322ae479db1b83b7b08c8f2676",
+  "reference_original_sha256": "e82d6cef7836bdb29c6223285626509b4ae4abfd686bd1029b2c3d5d0d976852",
+  "reference_patched_sha256": "e387973e7e407aae3eb51d3671c7434f03bacb7c901a2347c12572c82a2ffaa5",
+  "hook_offset": 316344,
+  "hook_expected": "12fa8f",
+  "hook_replacement": "12ff00",
+  "cave_offset": 327424,
+  "cave_size": 256,
+  "expected_changed_bytes": 72
+}
