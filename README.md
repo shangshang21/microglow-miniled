@@ -1,4 +1,4 @@
-# 400 块的便携 Mini LED，找回了黑夜
+# 400 块的便携 Mini LED，找回了分区背光
 
 **简体中文** · [English](README.en.md)
 

@@ -1,4 +1,4 @@
-# A ¥400 Portable Mini LED Got Its Night Back
+# A ¥400 Portable Mini LED Got Its Local Dimming Back
 
 [简体中文](README.md) · **English**
 
