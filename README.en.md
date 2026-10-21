@@ -1,24 +1,24 @@
-# MicroGlow: Bringing the Night Back to a ¥400 Portable Mini LED Monitor
+# A ¥400 Portable Mini LED Got Its Night Back
 
 [简体中文](README.md) · **English**
 
-A salvaged BOE panel, a multi-input controller board, and a repair I was a little too stubborn to abandon.
+A salvaged BOE panel, a multi-input controller board, and a repair I was too stubborn to give up on.
 
-I bought a used portable Mini LED monitor for ¥600 and later received a ¥200 refund. That left me with a ¥400 monitor that was very bright, but whose black backgrounds looked gray and purple whenever bright objects were on screen. The seller said local dimming was enabled by default. What I could see did not match that explanation.
+Bought a used portable Mini LED for ¥600, got ¥200 back, so ¥400 in the end. Bright screen, but black backgrounds were gray and purple — looked like an ordinary LCD with the backlight stuck on. Seller said local dimming was on by default. Not what I was seeing.
 
-For a while, I considered keeping it as an ordinary IPS display. Then I kept coming back to one question: if the panel already had the capability, what was stopping it from using it?
+Almost gave up and treated it as a regular IPS. But I kept wondering: if the panel has the hardware, what's stopping it?
 
-I opened the enclosure, identified the panel and controller board, and worked with AI assistants through host-side queries, controller firmware, the downstream panel interface, and the backlight startup sequence. On this particular hardware combination, I found an initialization path that produced working local dimming in my own use.
+Opened it up, identified the panel and controller, and with AI assistants traced the path from the PC through controller firmware, downstream panel interface, and backlight initialization. On this specific hardware, I found a way to make local dimming actually work.
 
-If this counts as mysterious Eastern magic, it mostly consists of buying something for ¥400 and refusing to give up on it.
+If this counts as mysterious Eastern magic, it mostly consists of buying something for ¥400 and refusing to give up.
 
-## What I actually consider working
+## Current status
 
-**Local dimming works in my daily use. The OSD's local-dimming toggle still produces no visible change.**
+**Local dimming works in daily use. The OSD toggle button has no visible effect.**
 
-Those are separate results, and I want both to be clear. Commands and control bits can change on readback without a corresponding change in the black background or halo. I do not know whether a power cycle or another step would make the toggle effective. I have not tested that hypothesis, and I am done pursuing it for now. I am happy with local dimming continuing to work.
+Both are true. The control bits change on readback when you press the button, but the black level doesn't follow. Whether a power cycle would help — no idea, didn't test it. I'm happy with local dimming staying on and done chasing the toggle.
 
-The public OSD disables that everyday toggle. Brightness, audio, software scenes, read-only control status and moving test patterns remain available. That is where I am leaving the toggle experiment, while keeping the parts I can use.
+The public build disables the toggle and keeps brightness, audio, scenes, status readback, and test patterns.
 
 ## The two photos
 
@@ -30,7 +30,7 @@ The public OSD disables that everyday toggle. Brightness, audio, software scenes
 
 ![My monitor after enabling local dimming](assets/after-local-dimming.jpg)
 
-These are records of my use. Framing, pattern position and phone exposure differ; this is not a controlled measurement. The photos cannot establish contrast ratio, luminance or zone count, and a halo remains visible around the bright object in the second photo. My statement about the effect comes from looking at the physical display.
+Casual phone photos — framing and exposure differ, not a controlled measurement. There's still a visible halo in the second shot. The conclusion comes from looking at the real screen, not the photos.
 
 ## The hardware in this case
 
@@ -43,7 +43,7 @@ These are records of my use. Framing, pattern position and phone exposure differ
 | Signal during the documented checks | 2560 × 1600 at 60 Hz |
 | Final cost | ¥600 purchase minus ¥200 refund: ¥400 |
 
-I am not claiming that every ordinary controller board can drive local dimming. This is one identified board, panel and firmware-code version. Other combinations need their own evidence.
+This doesn't mean every generic board can do it. One board, one panel, one firmware version. Other combinations need their own testing.
 
 ## How I found the initialization path
 
@@ -52,9 +52,9 @@ I am not claiming that every ordinary controller board can drive local dimming. 
 3. **Find the startup conditions.** On this combination, writing Source OUI `00 AA 01`, waiting, and setting bit 3 of panel DPCD `0x344` reached a state in which I observed working local dimming.
 4. **Put that sequence into startup.** I added a newly written 72-byte initialization stub to the verified firmware and changed its call site. The total number of differing bytes is also 72. My own installation was backed up and checked by a complete flash readback.
 
-The OUI is part of this compatibility path; it does not turn my controller board into an Intel product. Also, early verbal observations and asynchronous log-arrival timestamps are not a synchronized optical switching measurement.
+Writing the Intel OUI opens this control path on the panel — it doesn't turn the board into an Intel product.
 
-See the [technical notes](docs/technical-notes.en.md) for patch scope, addresses, compatibility checks and limitations.
+See the [technical notes](docs/technical-notes.en.md) for patch details, addresses, and compatibility checks.
 
 ## MicroGlow OSD
 
@@ -67,19 +67,19 @@ I also broke the monitor's physical control wheel while opening it. That became 
 - A moving white square, an alternating checkerboard and a moving narrow bar. Space pauses, clicking positions the object, Tab changes the pattern and Esc returns.
 - A tray icon, global hotkeys and recovery from invalid physical-monitor handles.
 
-Software scenes are parameter recipes, not the monitor manufacturer's FPS algorithm. FreeSync and HDR show available status and settings links, without pretend switches. The desktop UI is currently in Simplified Chinese; the project documentation is available in Chinese and English.
+Software scenes are parameter recipes, not the manufacturer's FPS algorithm. FreeSync and HDR show read-only status, no fake switches. UI is in Simplified Chinese; docs are available in both Chinese and English.
 
-**The local-dimming toggle has no observed optical effect. The public build sends no E8 local-dimming Set command.** A readback from the research bridge is not proof of optical switching. Without that optional research extension, control status may be unreadable even when the startup initialization and local dimming work.
+**The local-dimming toggle has no visible effect; the public build sends no E8 write.** Without the research bridge extension, control status may be unreadable, but that doesn't mean local dimming isn't working.
 
 ## Using this repository
 
-This repository contains buildable source and a **local-file-only** startup patch generator. It does not contain complete vendor firmware, patched full images, commercial databases, vendor DLLs or the history of my private research archive.
+Buildable source code and a **local-file-only** startup patch generator. No vendor firmware, commercial databases, vendor DLLs, or private research history.
 
 ### Build the OSD
 
-For a ready-to-run Windows x64 package, visit [Releases](https://github.com/shangshang21/microglow-miniled/releases/latest). Extract it and run `MicroGlow.exe`. It is a desktop control application, not a firmware installer.
+For a ready-to-run package, grab the Windows x64 zip from [Releases](https://github.com/shangshang21/microglow-miniled/releases/latest) and run `MicroGlow.exe`.
 
-Requirements: Windows x64, .NET Framework 4.8 and its system C# compiler.
+To build from source — Windows x64, .NET Framework 4.8, system C# compiler:
 
 ```powershell
 powershell -NoProfile -File .\apps\MicroGlow\build.ps1
@@ -87,7 +87,7 @@ powershell -NoProfile -File .\apps\MicroGlow\build.ps1
 
 The output is `build/MicroGlow`. Keep `MicroGlow.exe`, `MainWindow.xaml` and `MicroGlow.ico` together. Copy `apps/MicroGlow/install.ps1` into that output directory to install it for the current user and create desktop shortcuts. Exit an older MicroGlow process before using a different build.
 
-The current application matches one unique `RTK2775` display. It is not a universal monitor-control utility. Launching the OSD does not flash firmware or reapply the startup initialization patch.
+Currently matches one `RTK2775` display only — not a universal OSD. Launching it doesn't flash firmware.
 
 ### Generate a patch from your own backup
 
@@ -97,17 +97,17 @@ Requirements: Python 3.10 or later; no third-party Python packages.
 py .\tools\build_startup_patch.py --input "my-original-backup.bin" --output "my-local-startup-patch.bin"
 ```
 
-The generator accepts only the reviewed firmware-code version. It preserves bank C configuration and rejects an unknown version, a repeated patch or an existing output file. Device configuration may vary, but **every byte outside that configuration bank must match the allowlisted version**. It generates a file and a local report; it does not access hardware or flash anything. A matching code digest does not identify your physical board or panel.
+Only accepts the reviewed firmware-code version. Preserves bank C configuration, rejects unknown versions or repeated patches. Configuration can vary between devices, but **every byte outside that bank must match the allowlist**. It generates a file — doesn't touch hardware.
 
-I have not turned my low-level flashing workflow into a universal one-click installer. Read the [technical notes](docs/technical-notes.en.md) first. Please do not upload vendor firmware or full device dumps in an issue.
+The low-level flashing workflow is not packaged as a one-click installer. Read the [technical notes](docs/technical-notes.en.md) first. Please don't upload vendor firmware or full dumps in issues.
 
-## Why I think this case is useful
+## Why this might be useful
 
-The interesting part for me is that this panel did not require me to replace everything with an expensive dedicated controller before I could observe local dimming. On my combination, a multi-input board with audio functions could also produce the effect after the missing initialization was supplied.
+The interesting part: you don't necessarily need an expensive dedicated board for local dimming. On my combination, a generic multi-input board with audio worked fine once the missing initialization was added.
 
-That is another direction worth investigating for DIY builds. It does not need a claim of universal compatibility or a flawless one-click repair to be useful.
+One more direction worth trying for DIY builds. It doesn't need universal compatibility to be useful.
 
-I have not measured peak luminance, the exact zone count or color accuracy. I have not tested whether power cycling changes the ineffective toggle. I will not turn a failed button experiment into a success story. This is where I am stopping the experiment for now.
+Haven't measured peak luminance, zone count, or color accuracy. The toggle experiment stops here.
 
 ## License and provenance
 

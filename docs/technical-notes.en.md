@@ -2,7 +2,7 @@
 
 [简体中文](技术说明.md) · **English** · [Home](../README.en.md)
 
-This note describes my JC2795L_R40.1 / JC2795L001 controller, BOE NE160QDM-NM4 V8.5 panel, and the code version allowlisted in `tools/compatibility.json`. The repository includes my initialization stub and local file generator, not complete firmware or an automatic flasher.
+Covers my JC2795L_R40.1 / JC2795L001 board, BOE NE160QDM-NM4 V8.5 panel, and the firmware-code allowlist in `tools/compatibility.json`. Includes the initialization stub and local file generator — no complete firmware or automatic flasher.
 
 ## The controller sits between HDMI and the panel
 
@@ -14,13 +14,13 @@ flowchart LR
     E[Original SPI firmware] --> B
 ```
 
-Controlling brightness over DDC does not give a PC direct HDMI access to the panel's eDP AUX interface. During research, I used the controller's host-access interface and downstream AUX engine. Ordinary DDC, controller registers and panel DPCD are different layers.
+DDC brightness control doesn't give the PC direct HDMI access to the panel's eDP AUX. I used the controller's host-access interface and downstream AUX engine to reach panel-side state. Ordinary DDC, controller registers, and panel DPCD are three different layers.
 
-The EDID helped identify the connected target. `RTK2775` does not identify the panel, prove the controller model or establish local-dimming support. The physical labels, PCB markings, CF23 chip read and firmware layout were considered together.
+EDID only helped confirm the connection target. `RTK2775` doesn't identify the panel or prove local-dimming support. Identification came from physical labels, PCB markings, CF23 chip read, and firmware layout together.
 
 ## The useful clue: Source OUI and a proprietary interface
 
-The public Linux i915 implementation documents an Intel proprietary AUX backlight interface and a Source OUI wait mechanism. I used that as a hypothesis and checked the response on my device. I did not port the whole Linux driver to Windows.
+The public Linux i915 implementation documents an Intel proprietary AUX backlight interface with a Source OUI wait mechanism. Used that as a hypothesis and checked the response on my device — not a Linux driver port.
 
 | Panel address | Meaning used in this case |
 | --- | --- |
@@ -29,9 +29,9 @@ The public Linux i915 implementation documents an Intel proprietary AUX backligh
 | `0x341 bit3` | Segmented-backlight capability |
 | `0x344 bit3` | Segmented-backlight control |
 
-Initially the OUI was `00 04 4B`, and the proprietary capability bytes read as zero. A direct `0x344=08` write failed. After writing `00 AA 01` and waiting, capabilities appeared and `0x344=08` could be written and read back. This is a device observation, not a universal panel password.
+Initially OUI was `00 04 4B`, proprietary capabilities read zero, direct `0x344=08` was rejected. After writing `00 AA 01` and waiting, capabilities appeared and `0x344=08` could be written and read back. This is what happened on my device — other panels may differ.
 
-I also tried the relevant standard eDP `0x721` bits. Readback changed, but fixed-brightness SDR/HDR comparisons did not show a clear optical change, so I did not adopt that route as the repair.
+Also tried standard eDP `0x721` bits. Readback changed but no visible effect at fixed brightness in SDR/HDR comparisons, so that route wasn't used.
 
 ## Exact startup patch scope
 
@@ -50,9 +50,9 @@ The new sequence:
 3. Wait 750 timer ticks using the original firmware's delay mechanism.
 4. Write panel `0x344=08`, restore the temporary RAM and return.
 
-**750 ticks is not an instrument-measured 750 milliseconds.** The complete new bytes are the [generator's STUB constant](../tools/build_startup_patch.py). Two bytes of the 72-byte stub are already `FF`; the call-site edit changes two bytes. The actual full-image difference is therefore also 72 bytes. That is not the erase size: my own deployment updated two 4 KiB sectors, with backups, sector checks and a complete image readback.
+**750 ticks is not a precise 750 milliseconds.** Full bytes are in the [generator's STUB constant](../tools/build_startup_patch.py). Two bytes of the stub happen to be `FF`; the call-site edit changes two more. Full-image difference: also 72 bytes — but the actual flash update covered two 4 KiB sectors, backed up and verified by sector and full-image readback.
 
-This did not adjust PQ decoding, color gamut or HDR calibration. Working local dimming does not establish that those features are calibrated.
+Didn't touch PQ decoding, color gamut, or HDR calibration. Working local dimming doesn't mean those are right.
 
 ## How the local generator restricts input
 
@@ -61,24 +61,24 @@ py .\tools\build_startup_patch.py --input "my-original-backup.bin" --output "new
 py -m unittest discover -s tests -v
 ```
 
-The generator checks image length, then hashes **all bytes concatenated outside bank C**. Individual configuration can differ, while the code and every other region must match the reviewed version. It also checks the original call site, the entire 256-byte reserved area, permitted offsets, 72 actual differences, the output code digest and unchanged configuration. Repeated patching and existing output paths are rejected.
+Checks image length, then hashes **all bytes outside bank C**. Configuration can vary; everything else must match the reviewed version byte-for-byte. Also verifies the original call site, the 256-byte reserved area being all `FF`, permitted offsets, 72 actual differences, output code digest, and unchanged configuration. Rejects repeated patching.
 
-Full reference-image digests are identification data, not download links:
+Reference-image digests (for identification, not download):
 
 - Original reference: `e82d6cef7836bdb29c6223285626509b4ae4abfd686bd1029b2c3d5d0d976852`
 - v2 reference candidate: `e387973e7e407aae3eb51d3671c7434f03bacb7c901a2347c12572c82a2ffaa5`
 
-A different configuration produces a different full-image digest. Code digests are in [compatibility metadata](../tools/compatibility.json). A digest match identifies file contents, not your physical controller or panel.
+Different configuration = different full-image digest. Code digests are in [compatibility metadata](../tools/compatibility.json).
 
-The generator only reads and writes local files. It does not enter ISP, load a GPU DLL, contact a monitor or offer a flashing command. Producing a file is not a substitute for having an independently verified backup and recovery method for your board. The generated image retains third-party content; the tool's GPL license does not license that content.
+The generator only reads and writes local files — no ISP, no GPU DLL, no monitor contact. If you can't independently back up and restore your board, generating a file isn't enough. The output still contains third-party firmware content; the tool's GPL doesn't cover that.
 
 ## The failure that belongs in the report
 
-**I have confirmed working local dimming overall. I have also confirmed that the PC toggle produces no visible difference.** Later ordinary E8 and direct panel reads could report an off configuration while the same black-background/white-object scene looked unchanged. Changing a UI label cannot turn that into optical success.
+**Local dimming works overall. The PC toggle has no visible effect.** E8 and panel reads can report "off" while the display looks unchanged.
 
-A later research bridge also changed Source OUI during runtime switching. It did not produce an optical toggle I accepted. Those runtime extensions are not included in the public startup generator. The public OSD retains optional E8 reads, removes switching writes, and disables the buttons and associated write hotkey.
+A later research bridge that also changed OUI at runtime didn't produce a visible toggle either. The public OSD keeps optional E8 reads, removes writes, and disables the toggle buttons and hotkey.
 
-Early verbal on/off observations were not strictly synchronized to asynchronous logs and do not override later direct feedback. Whether power cycling would change the result is untested. I have stopped this experiment; it should not be described as a supported toggle or another test waiting for me.
+Whether power cycling would help is untested. Experiment stops here.
 
 ## What each check establishes
 
@@ -88,7 +88,7 @@ Early verbal on/off observations were not strictly synchronized to asynchronous 
 - My physical observations: overall local dimming works; manual switching has no visible effect.
 - The two photographs: records with different exposure, framing and patterns, not controlled measurements.
 
-Preparing this public release did not reflash the monitor, alter brightness or resume power-cycle experiments. See the [verification record](验证记录.json).
+This public release didn't reflash the monitor or resume experiments. See the [verification record](验证记录.json).
 
 ## Public references
 
@@ -97,4 +97,4 @@ Preparing this public release did not reflash the monitor, alter brightness or r
 - [Microsoft low-level monitor configuration](https://learn.microsoft.com/en-us/windows/win32/monitor/using-the-low-level-monitor-configuration-functions): Windows DDC/CI and VCP access.
 - [AMD ADL I2C / DDC / EDID](https://gpuopen-librariesandsdks.github.io/adl/group__I2CDDCEDIDAPI.html): system interface used during research.
 
-These sources supplied interface clues. Hardware identification, byte digests and optical observations come from my own case; the linked projects have not certified this patch.
+These are interface references, not endorsements of this patch. Hardware IDs, digests, and observations come from my own case.

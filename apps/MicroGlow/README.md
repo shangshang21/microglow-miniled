@@ -14,13 +14,13 @@ powershell -NoProfile -File .\apps\MicroGlow\build.ps1
 
 Run from the repository root. Keep the generated EXE, XAML and ICO together in build/MicroGlow.
 
-公开版保留亮度、画质、系统声音、场景、托盘、快捷键和动态图案。分区切换在本案例中没有产生可见效果，因此已停用，公开版不发送 E8 Set 命令。动态图案不会自动改亮度，打开时临时防止显示器息屏，关闭释放。
+公开版保留亮度、画质、系统声音、场景、托盘、快捷键和动态图案。分区切换没有可见效果，已停用，不发送 E8 Set。图案打开时防止息屏，关闭释放。
 
-The public build retains brightness, picture settings, system audio, scenes, tray, hotkeys and dynamic patterns. Local-dimming switching produced no visible effect in this case and is disabled. This build sends no E8 Set command. Test patterns do not adjust brightness and temporarily inhibit display sleep while open.
+The public build keeps brightness, picture settings, system audio, scenes, tray, hotkeys and test patterns. Local-dimming toggle had no visible effect and is disabled — no E8 Set sent. Patterns inhibit display sleep while open.
 
-程序只匹配唯一的 RTK2775；状态读取不可用并不等于面板分区背光无效。研究用 E8 状态桥不包含在启动补丁生成器中。
+只匹配 RTK2775。状态读不到不代表分区背光没在工作。
 
-The application currently matches one unique RTK2775 monitor. Unavailable control-status readback does not establish that local dimming is inactive. The optional research E8 status bridge is not part of the startup patch generator.
+Matches one RTK2775 display only. Unreadable control status doesn't mean local dimming is off.
 
 快捷键 / Hotkeys:
 
