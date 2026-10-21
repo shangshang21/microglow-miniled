@@ -38,7 +38,7 @@ Casual phone photos — framing and exposure differ, not a controlled measuremen
 | --- | --- |
 | Panel | BOE NE160QDM-NM4, label revision V8.5 |
 | Controller PCB | JC2795L_R40.1, board sticker JC2795L001 |
-| Controller identification | CF23 read from the chip; RTD2795-family evidence. RTK2775 is the external display ID |
+| Controller identification | Chip marking: 2775QT / 071GCP1 / G036; CF23 read from register. RTK2775 is the external display ID |
 | Connection | AMD GPU to the portable monitor over HDMI |
 | Signal during the documented checks | 2560 × 1600 at 60 Hz |
 | Final cost | ¥600 purchase minus ¥200 refund: ¥400 |
